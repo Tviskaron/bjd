@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Определение зоны поражения</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <script src="http://api-maps.yandex.ru/2.0/?load=package.full&lang=ru-RU" type="text/javascript"></script>
+    <script type="text/javascript">
+        // когда яндекс мапс скачались, запускаем скрипт
+        ymaps.ready(init);
+
+        var center_y = 38.848326;
+        var center_x = 58.051262;
+        var map;
+        var sector;
+
+        function init () {
+            map = new ymaps.Map("map", {center: [center_x,center_y],zoom: 13});
+            // добавляем стандатрный кнопки
+            map.controls.add(new ymaps.control.MapTools());
+            // добавляем масштабную линейку
+            map.controls.add(new ymaps.control.ScaleLine());
+
+            // вешаем обработчик на кнопку redraw
+            document.getElementById('redraw').onclick = function () {
+                var wind_speed = Number(document.getElementById('wind_speed').value);
+                var wind_angle = Number(document.getElementById('wind').value);
+                var temperature = Number(document.getElementById('temp').value);
+                var N = Number(document.getElementById('time').value) / 60.0;
+
+                var Q0 = 16;
+                var K1=0.18, K3=1, K5=0.23;
+
+                function get_K7_for_chlor(t) {
+                    res = 0.617143+0.0175*t+0.0000535714*t*t-2.43433*(Math.pow(10, -21)) * t * t *t;
+                    return Math.max(res, 0);
+                }
+
+                var K7= get_K7_for_chlor(temperature);
+                var K2 = 0.052;
+                var K4 = 1 + 0.33 * Math.max(wind_speed-1.0, 0);
+                var d = 1.553;
+                var h = 0.05;
+                var T = h * d / (K2 * K4 * K7);
+
+                var K6 = Math.pow(Math.min(N, T), 0.8);
+
+
+                var radius = calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed);
+                wind_angle += Math.PI / 2.0;
+                draw_sector(center_x, center_y, radius, wind_angle - get_angle(wind_speed) / 2.0,  wind_angle + get_angle(wind_speed) / 2.0);
+            };
+
+            // рисуем пустой сектор, чтобы дальше не было проблем с перерисовкой
+            sector = new ymaps.Polygon([], {}, {});
+            map.geoObjects.add(sector)
+        }
+
+
+        function draw_sector(x, y, radius, begin, end) {
+            map.geoObjects.add(sector);
+
+
+            var delta = 2.0 * Math.PI / 360;
+            // список точек сектора
+            var circle_points = [];
+            if ((Math.abs(begin-end) + 0.001) < Math.PI * 2)
+                circle_points.push([x, y]);
+            // добавляем точки на секторе
+            for (var i = begin; i < end; i += delta) {
+                var cx = Math.cos(i) * radius + x;
+                var cy = Math.sin(i) * radius + y;
+                circle_points.push(ymaps.coordSystem.geo.solveDirectProblem([x, y], [cx, cy], radius).endPoint);
+            }
+            map.geoObjects.remove(sector);
+            sector = new ymaps.Polygon([circle_points], {}, {fill: true,stroke: true,strokeWidth: 7,strokeColor: "ff000055",fillColor: "ff000055"});
+            map.geoObjects.add(sector);
+        }
+
+        function calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed) {
+            // Q0 - количество выброшенного вещества в тоннах
+            // K1 - коэффициент зависящий от условий хранения СДЯВ
+            // K3 - коэффициент, равный отношению пороговойтоксодозы хлора к пороговой токсодозе другого СДЯВ
+            // K5 - коэффициент, учитывающий степень вертикальнойустойчивости атмосферы; для инверсии 1, для изотермии 0,23,для конвекции 0,08;
+            // K7 - коэффициент учитывающий влияние температуры
+            // Qe1 - эквивалентное количество вещества в первичном облаке(рассчитываем)
+            // Qe2 - эквивалентное количество вещества во вторичном облаке(рассчитываем)
+
+            // T - время испарения(рассчитываем)
+            // h - толщина слоя СДЯВ (для СДЯВ, разлившихся свободно наподстилающей поверхности, принимается равной 0,05 м)
+            // d - плотность СДЯВ
+            // K2 - коэффициент,зависящий от физико-химических свойств СДЯВ
+            // K4 - коэффициент учитывающий скорость ветра
+            // N - время прошедшее с начала аварии
+            // G1 - глубина зоны поражения для первого облака, берем Qe1 и смотрим в таблицу
+            // G2 - глубина зоны поражения для вториченого облака
+
+
+            var approximation = [
+                [0.979415, 3.27925, -0.20212, 0.00548203],
+                [0.656495, 1.89153, -0.121642, 0.00332715],
+                [0.545446, 1.3972,  -0.09128,  0.00249605],
+                [0.492074, 1.14249, -0.076236, 0.00209726],
+                [0.448782, 1.00334, -0.0696555,0.00194277],
+                [0.399569, 0.941758,-0.0698689,0.0019897],
+                [0.371810, 0.870254,-0.0645611,0.00181649],
+                [0.351125, 0.812017,-0.0597856,0.00165585],
+                [0.326465, 0.767709,-0.0566479,0.00157279],
+                [0.311292, 0.728983,-0.0538013,0.0014929],
+                [0.295378, 0.693393,-0.0511167,0.00141836],
+                [0.281802, 0.663827,-0.048886, 0.00135618],
+                [0.267875, 0.649836,-0.0487303,0.0013613],
+                [0.262261, 0.61476, -0.0454213,0.00126302],
+                [0.257442, 0.592619,-0.0436031,0.0012093]];
+
+
+            var Qe1 = K1 * K3 * K5 * K7 * Q0;
+            var Qe2 = (1 - K1) * K2 * K3 * K4 * K5 * K6 * K7 * Q0 / (h * d);
+
+            function get_approximated(q, wind_speed) {
+                for(var i = 0; i < 15; i++)
+                    if (wind_speed <= i + 1)
+                        return approximation[i][0] + approximation[i][1] * q + approximation[i][2] * q * q + approximation[i][3] * q * q * q;
+                return approximation[14][0] + approximation[14][1] * q + approximation[14][2] * q * q + approximation[14][3] * q * q * q;
+            }
+
+            var G = get_approximated(Qe2, wind_speed) + get_approximated(Qe1, wind_speed) * 0.5;
+            console.log("Глубина поражения:", G);
+            return G * 1000;
+        }
+
+        function get_angle(wind_speed) {
+            if (0.5 <= wind_speed && wind_speed < 1) return Math.PI;
+            if (1 <= wind_speed && wind_speed < 2) return Math.PI / 2.0;
+            if (2 <= wind_speed) return Math.PI / 4.0;
+
+            // если скорость ветра меньше 0.5 то это круг
+            return 2 * Math.PI;
+        }
+
+    </script>
+</head>
+ 
+<body>
+<div  style="width:100%;">
+
+<div style="width:75%;float:left;">
+    <div id="map" style="width: 100%; height: 768px"></div>
+</div>
+<div style="width:25%;float:left;"></div>
+    <input name="wind_speed" type="text" maxlength="512" id="wind_speed" class="wind_speed" value="2.3"/>
+    <label for="wind_speed">Скорость ветра(м/c)</label>
+
+    <p></p>
+
+    <input name="wind" type="text" maxlength="512" id="wind" value="0"/>
+    <label for="wind">Направление ветра(в радианах)</label>
+
+    <p></p>
+
+    <input name="temp" type="text" maxlength="512" id="temp" value="13"/>
+    <label for="temp">Температура воздуха(в градусах)</label>
+
+    <p></p>
+
+    <input name="time" type="time" maxlength="512" id="time" value="20"/>
+    <label for="time">Время с начала аварии(в минутах)</label>
+
+    <p></p>
+
+    <button id="redraw"> Отобразить </button>
+</div>
+
+
+
+</body>
+ 
+</html>
