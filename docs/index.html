@@ -14,14 +14,21 @@
         let sector;
 
         function init() {
-            map = new ymaps.Map("map", {center: [center_x, center_y], zoom: 13});
+            map = new ymaps.Map("map", {center: [center_x, center_y], zoom: 15});
             // добавляем стандатрный кнопки
             map.controls.add(new ymaps.control.MapTools());
             // добавляем масштабную линейку
             map.controls.add(new ymaps.control.ScaleLine());
 
             // вешаем обработчик на кнопку redraw
-            document.getElementById('redraw').onclick = function () {
+            document.getElementById('temp').onchange = calc;
+            document.getElementById('wind_speed').onchange = calc;
+            document.getElementById('wind_dir').onchange = calc;
+            document.getElementById('time').onchange = calc;
+
+            onload = calc;
+
+            function calc() {
                 let wind_speed = Number(document.getElementById('wind_speed').value);
                 let wind_angle = Number(document.getElementById('wind_dir').value);
                 let temperature = Number(document.getElementById('temp').value);
@@ -48,7 +55,7 @@
                 let radius = calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed);
                 wind_angle += Math.PI / 2.0;
                 draw_sector(center_x, center_y, radius, wind_angle - get_angle(wind_speed) / 2.0, wind_angle + get_angle(wind_speed) / 2.0);
-            };
+            }
 
             // рисуем пустой сектор, чтобы дальше не было проблем с перерисовкой
             sector = new ymaps.Polygon([], {}, {});
@@ -193,12 +200,12 @@
 
     <div class="slidecontainer">
         Направление ветра (радианы): <span id="wind_dir_output"></span>
-        <input type="range" min="-3.14" max="3.14" value="0" class="slider" id="wind_dir" step="0.05">
+        <input type="range" min="-3.14" max="3.14" value="1.41" class="slider" id="wind_dir" step="0.05">
     </div>
 
     <div class="slidecontainer">
         Скорость ветра (м/c): <span id="wind_speed_output"></span>
-        <input type="range" min="0" max="50" value="7" class="slider" id="wind_speed">
+        <input type="range" min="0" max="50" value="7" class="slider" id="wind_speed" step="0.5">
     </div>
 
     <div class="slidecontainer">
@@ -238,7 +245,7 @@
             output_temp.innerHTML = this.value;
         };
 
-        let slider_time= document.getElementById("time");
+        let slider_time = document.getElementById("time");
         let output_time = document.getElementById("time_output");
         output_time.innerHTML = slider_time.value;
 
@@ -248,7 +255,6 @@
     </script>
 
 
-    <button id="redraw"> Отобразить</button>
 </div>
 
 
