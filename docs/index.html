@@ -8,13 +8,13 @@
         // когда яндекс мапс скачались, запускаем скрипт
         ymaps.ready(init);
 
-        var center_y = 38.848326;
-        var center_x = 58.051262;
-        var map;
-        var sector;
+        let center_y = 38.848326;
+        let center_x = 58.051262;
+        let map;
+        let sector;
 
-        function init () {
-            map = new ymaps.Map("map", {center: [center_x,center_y],zoom: 13});
+        function init() {
+            map = new ymaps.Map("map", {center: [center_x, center_y], zoom: 13});
             // добавляем стандатрный кнопки
             map.controls.add(new ymaps.control.MapTools());
             // добавляем масштабную линейку
@@ -22,32 +22,32 @@
 
             // вешаем обработчик на кнопку redraw
             document.getElementById('redraw').onclick = function () {
-                var wind_speed = Number(document.getElementById('wind_speed').value);
-                var wind_angle = Number(document.getElementById('wind').value);
-                var temperature = Number(document.getElementById('temp').value);
-                var N = Number(document.getElementById('time').value) / 60.0;
+                let wind_speed = Number(document.getElementById('wind_speed').value);
+                let wind_angle = Number(document.getElementById('wind_dir').value);
+                let temperature = Number(document.getElementById('temp').value);
+                let N = Number(document.getElementById('time').value) / 60.0;
 
-                var Q0 = 16;
-                var K1=0.18, K3=1, K5=0.23;
+                let Q0 = 16;
+                let K1 = 0.18, K3 = 1, K5 = 0.23;
 
                 function get_K7_for_chlor(t) {
-                    res = 0.617143+0.0175*t+0.0000535714*t*t-2.43433*(Math.pow(10, -21)) * t * t *t;
+                    res = 0.617143 + 0.0175 * t + 0.0000535714 * t * t - 2.43433 * (Math.pow(10, -21)) * t * t * t;
                     return Math.max(res, 0);
                 }
 
-                var K7= get_K7_for_chlor(temperature);
-                var K2 = 0.052;
-                var K4 = 1 + 0.33 * Math.max(wind_speed-1.0, 0);
-                var d = 1.553;
-                var h = 0.05;
-                var T = h * d / (K2 * K4 * K7);
+                let K7 = get_K7_for_chlor(temperature);
+                let K2 = 0.052;
+                let K4 = 1 + 0.33 * Math.max(wind_speed - 1.0, 0);
+                let d = 1.553;
+                let h = 0.05;
+                let T = h * d / (K2 * K4 * K7);
 
-                var K6 = Math.pow(Math.min(N, T), 0.8);
+                let K6 = Math.pow(Math.min(N, T), 0.8);
 
 
-                var radius = calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed);
+                let radius = calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed);
                 wind_angle += Math.PI / 2.0;
-                draw_sector(center_x, center_y, radius, wind_angle - get_angle(wind_speed) / 2.0,  wind_angle + get_angle(wind_speed) / 2.0);
+                draw_sector(center_x, center_y, radius, wind_angle - get_angle(wind_speed) / 2.0, wind_angle + get_angle(wind_speed) / 2.0);
             };
 
             // рисуем пустой сектор, чтобы дальше не было проблем с перерисовкой
@@ -60,19 +60,25 @@
             map.geoObjects.add(sector);
 
 
-            var delta = 2.0 * Math.PI / 360;
+            let delta = 2.0 * Math.PI / 360;
             // список точек сектора
-            var circle_points = [];
-            if ((Math.abs(begin-end) + 0.001) < Math.PI * 2)
+            let circle_points = [];
+            if ((Math.abs(begin - end) + 0.001) < Math.PI * 2)
                 circle_points.push([x, y]);
             // добавляем точки на секторе
-            for (var i = begin; i < end; i += delta) {
-                var cx = Math.cos(i) * radius + x;
-                var cy = Math.sin(i) * radius + y;
+            for (let i = begin; i < end; i += delta) {
+                let cx = Math.cos(i) * radius + x;
+                let cy = Math.sin(i) * radius + y;
                 circle_points.push(ymaps.coordSystem.geo.solveDirectProblem([x, y], [cx, cy], radius).endPoint);
             }
             map.geoObjects.remove(sector);
-            sector = new ymaps.Polygon([circle_points], {}, {fill: true,stroke: true,strokeWidth: 7,strokeColor: "ff000055",fillColor: "ff000055"});
+            sector = new ymaps.Polygon([circle_points], {}, {
+                fill: true,
+                stroke: true,
+                strokeWidth: 7,
+                strokeColor: "ff000055",
+                fillColor: "ff000055"
+            });
             map.geoObjects.add(sector);
         }
 
@@ -95,35 +101,35 @@
             // G2 - глубина зоны поражения для вториченого облака
 
 
-            var approximation = [
+            let approximation = [
                 [0.979415, 3.27925, -0.20212, 0.00548203],
                 [0.656495, 1.89153, -0.121642, 0.00332715],
-                [0.545446, 1.3972,  -0.09128,  0.00249605],
+                [0.545446, 1.3972, -0.09128, 0.00249605],
                 [0.492074, 1.14249, -0.076236, 0.00209726],
-                [0.448782, 1.00334, -0.0696555,0.00194277],
-                [0.399569, 0.941758,-0.0698689,0.0019897],
-                [0.371810, 0.870254,-0.0645611,0.00181649],
-                [0.351125, 0.812017,-0.0597856,0.00165585],
-                [0.326465, 0.767709,-0.0566479,0.00157279],
-                [0.311292, 0.728983,-0.0538013,0.0014929],
-                [0.295378, 0.693393,-0.0511167,0.00141836],
-                [0.281802, 0.663827,-0.048886, 0.00135618],
-                [0.267875, 0.649836,-0.0487303,0.0013613],
-                [0.262261, 0.61476, -0.0454213,0.00126302],
-                [0.257442, 0.592619,-0.0436031,0.0012093]];
+                [0.448782, 1.00334, -0.0696555, 0.00194277],
+                [0.399569, 0.941758, -0.0698689, 0.0019897],
+                [0.371810, 0.870254, -0.0645611, 0.00181649],
+                [0.351125, 0.812017, -0.0597856, 0.00165585],
+                [0.326465, 0.767709, -0.0566479, 0.00157279],
+                [0.311292, 0.728983, -0.0538013, 0.0014929],
+                [0.295378, 0.693393, -0.0511167, 0.00141836],
+                [0.281802, 0.663827, -0.048886, 0.00135618],
+                [0.267875, 0.649836, -0.0487303, 0.0013613],
+                [0.262261, 0.61476, -0.0454213, 0.00126302],
+                [0.257442, 0.592619, -0.0436031, 0.0012093]];
 
 
-            var Qe1 = K1 * K3 * K5 * K7 * Q0;
-            var Qe2 = (1 - K1) * K2 * K3 * K4 * K5 * K6 * K7 * Q0 / (h * d);
+            let Qe1 = K1 * K3 * K5 * K7 * Q0;
+            let Qe2 = (1 - K1) * K2 * K3 * K4 * K5 * K6 * K7 * Q0 / (h * d);
 
             function get_approximated(q, wind_speed) {
-                for(var i = 0; i < 15; i++)
+                for (let i = 0; i < 15; i++)
                     if (wind_speed <= i + 1)
                         return approximation[i][0] + approximation[i][1] * q + approximation[i][2] * q * q + approximation[i][3] * q * q * q;
                 return approximation[14][0] + approximation[14][1] * q + approximation[14][2] * q * q + approximation[14][3] * q * q * q;
             }
 
-            var G = get_approximated(Qe2, wind_speed) + get_approximated(Qe1, wind_speed) * 0.5;
+            let G = get_approximated(Qe2, wind_speed) + get_approximated(Qe1, wind_speed) * 0.5;
             console.log("Глубина поражения:", G);
             return G * 1000;
         }
@@ -138,40 +144,114 @@
         }
 
     </script>
+    <style>
+        .slidecontainer {
+            width: 100%;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+    </style>
 </head>
- 
+
+
 <body>
-<div  style="width:100%;">
+<div style="width:100%;">
 
-<div style="width:75%;float:left;">
-    <div id="map" style="width: 100%; height: 768px"></div>
+    <div style="width:100%;float:left;">
+        <div id="map" style="width: 100%; height: 768px"></div>
+    </div>
+    <div style="width:25%;float:left;"></div>
+
+    <div class="slidecontainer">
+        Направление ветра (радианы): <span id="wind_dir_output"></span>
+        <input type="range" min="-3.14" max="3.14" value="0" class="slider" id="wind_dir" step="0.05">
+    </div>
+
+    <div class="slidecontainer">
+        Скорость ветра (м/c): <span id="wind_speed_output"></span>
+        <input type="range" min="0" max="50" value="7" class="slider" id="wind_speed">
+    </div>
+
+    <div class="slidecontainer">
+        Температура (градусы): <span id="temp_output"></span>
+        <input type="range" min="-40" max="40" value="20" class="slider" id="temp">
+    </div>
+
+    <div class="slidecontainer">
+        Время с начала аварии (минуты): <span id="time_output"></span>
+        <input type="range" min="0" max="30" value="0" class="slider" id="time">
+    </div>
+
+    <script>
+        let slider_wind_dir = document.getElementById("wind_dir");
+        let output_wind_dir = document.getElementById("wind_dir_output");
+        output_wind_dir.innerHTML = slider_wind_dir.value;
+
+        slider_wind_dir.oninput = function () {
+            output_wind_dir.innerHTML = this.value;
+        };
+
+
+        let slider_wind_speed = document.getElementById("wind_speed");
+        let output_wind_speed = document.getElementById("wind_speed_output");
+        output_wind_speed.innerHTML = slider_wind_speed.value;
+
+        slider_wind_speed.oninput = function () {
+            output_wind_speed.innerHTML = this.value;
+        };
+
+
+        let slider_temp = document.getElementById("temp");
+        let output_temp = document.getElementById("temp_output");
+        output_temp.innerHTML = slider_temp.value;
+
+        slider_temp.oninput = function () {
+            output_temp.innerHTML = this.value;
+        };
+
+        let slider_time= document.getElementById("time");
+        let output_time = document.getElementById("time_output");
+        output_time.innerHTML = slider_time.value;
+
+        slider_time.oninput = function () {
+            output_time.innerHTML = this.value;
+        }
+    </script>
+
+
+    <button id="redraw"> Отобразить</button>
 </div>
-<div style="width:25%;float:left;"></div>
-    <input name="wind_speed" type="text" maxlength="512" id="wind_speed" class="wind_speed" value="2.3"/>
-    <label for="wind_speed">Скорость ветра(м/c)</label>
-
-    <p></p>
-
-    <input name="wind" type="text" maxlength="512" id="wind" value="0"/>
-    <label for="wind">Направление ветра(в радианах)</label>
-
-    <p></p>
-
-    <input name="temp" type="text" maxlength="512" id="temp" value="13"/>
-    <label for="temp">Температура воздуха(в градусах)</label>
-
-    <p></p>
-
-    <input name="time" type="time" maxlength="512" id="time" value="20"/>
-    <label for="time">Время с начала аварии(в минутах)</label>
-
-    <p></p>
-
-    <button id="redraw"> Отобразить </button>
-</div>
-
 
 
 </body>
- 
+
 </html>
