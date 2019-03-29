@@ -34,7 +34,7 @@
                 let temperature = Number(document.getElementById('temp').value);
                 let N = Number(document.getElementById('time').value) / 60.0;
 
-                let Q0 = 16;
+                let Q0 = 12;
                 let K1 = 0.18, K3 = 1, K5 = 0.23;
 
                 function get_K7_for_chlor(t) {
@@ -50,8 +50,9 @@
                 let T = h * d / (K2 * K4 * K7);
 
                 let K6 = Math.pow(Math.min(N, T), 0.8);
-
-
+                console.log("K6", K6);
+                console.log("N", N);
+                console.log("T", T);
                 let radius = calculate_radius(Q0, K1, K2, K3, K4, K5, K6, K7, d, h, T, wind_speed);
                 wind_angle += Math.PI / 2.0;
                 draw_sector(center_x, center_y, radius, wind_angle - get_angle(wind_speed) / 2.0, wind_angle + get_angle(wind_speed) / 2.0);
@@ -214,8 +215,8 @@
     </div>
 
     <div class="slidecontainer">
-        Время с начала аварии (минуты): <span id="time_output"></span>
-        <input type="range" min="0" max="30" value="0" class="slider" id="time">
+        Время с начала аварии: <span id="time_output"></span>
+        <input type="range" min="0" max="480" value="0" class="slider" id="time" step="5">
     </div>
 
     <script>
@@ -247,10 +248,15 @@
 
         let slider_time = document.getElementById("time");
         let output_time = document.getElementById("time_output");
-        output_time.innerHTML = slider_time.value;
+        let hours = (slider_time.value - slider_time.value % 60) / 60;
+        let minutes = slider_time.value % 60;
+
+        output_time.innerHTML = hours.toString() + "ч. " + minutes.toString() + "м.";
 
         slider_time.oninput = function () {
-            output_time.innerHTML = this.value;
+            let hours = (this.value - this.value % 60) / 60;
+            let minutes = this.value % 60;
+            output_time.innerHTML = hours.toString() + "ч. " + minutes.toString() + "м.";
         }
     </script>
 
